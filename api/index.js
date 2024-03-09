@@ -10,6 +10,56 @@ app.use(cors());
 app.use(express.json());
 const port = process.env.PORT;
 
+app.put("/to-do/:id", (req, res) => {
+  const { id } = req.params;
+  const { description, title, isImportant, isDone } = req.body;
+
+  const checkExistQuery = `SELECT * FROM to_do WHERE id = ?`;
+  db.get(checkExistQuery, [id], (err, row) => {
+    if (err) {
+      console.error(err.message);
+      res.status(500).send("Erro ao buscar o todoItem");
+      return;
+    }
+    if (!row) {
+      res.status(404).send("todoItem não encontrado");
+      return;
+    }
+
+    const updateQuery = `UPDATE to_do SET
+        description = COALESCE(?,description),
+        title = COALESCE(?,title),
+        isImportant = COALESCE(?,isImportant),
+        isDone = COALESCE(?,isDone)
+      WHERE id = ?`;
+
+    db.run(
+      updateQuery,
+      [description, title, isImportant, isDone, id],
+      function (err) {
+        if (err) {
+          console.error(err.message);
+          res.status(500).send("Erro ao atualizar o todoItem");
+          return;
+        }
+        if (this.changes === 0) {
+          res.status(404).send("Nenhuma atualização realizada no todoItem");
+          return;
+        }
+
+        db.get(`SELECT * FROM to_do WHERE id = ?`, [id], (err, updatedItem) => {
+          if (err) {
+            console.error(err.message);
+            res.status(500).send("Erro ao buscar o todoItem atualizado");
+            return;
+          }
+          res.json(updatedItem);
+        });
+      }
+    );
+  });
+});
+
 app.post("/to-do", (req, res) => {
   const { description, title, categoryId } = req.body;
 
