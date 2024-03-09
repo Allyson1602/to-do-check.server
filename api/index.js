@@ -10,6 +10,42 @@ app.use(cors());
 app.use(express.json());
 const port = process.env.PORT;
 
+app.delete("/to-do/:id", (req, res) => {
+  const { id } = req.params;
+
+  const checkExistQuery = `SELECT * FROM to_do WHERE id = ?`;
+  db.get(checkExistQuery, [id], (err, row) => {
+    if (err) {
+      console.error(err.message);
+      res.status(500).send("Erro ao verificar a existência do todoItem");
+      return;
+    }
+
+    if (!row) {
+      res.status(404).send("todoItem não encontrado");
+      return;
+    }
+
+    const deleteQuery = `DELETE FROM to_do WHERE id = ?`;
+    db.run(deleteQuery, [id], function (err) {
+      if (err) {
+        console.error(err.message);
+        res.status(500).send("Erro ao deletar o todoItem");
+        return;
+      }
+
+      if (this.changes === 0) {
+        res
+          .status(404)
+          .send("Nenhuma alteração realizada, todoItem não foi deletado.");
+        return;
+      }
+
+      res.json({ id });
+    });
+  });
+});
+
 app.put("/to-do/:id", (req, res) => {
   const { id } = req.params;
   const { description, title, isImportant, isDone } = req.body;
@@ -86,7 +122,6 @@ app.post("/to-do", (req, res) => {
       return;
     }
 
-    // Insere o novo todoItem no banco de dados
     const insertQuery = `INSERT INTO to_do (description, title, categoryId) VALUES (?, ?, ?)`;
 
     db.run(insertQuery, [description, title, categoryId], function (err) {
