@@ -25,8 +25,8 @@ db.serialize(() => {
         categoryId INTEGER,
         description TEXT NOT NULL,
         title TEXT NOT NULL,
-        isImportant BOOLEAN NOT NULL CHECK (isImportant IN (0, 1)),
-        isDone BOOLEAN NOT NULL CHECK (isDone IN (0, 1)),
+        isImportant BOOLEAN NOT NULL DEFAULT 0 CHECK (isImportant IN (0, 1)),
+        isDone BOOLEAN NOT NULL DEFAULT 0 CHECK (isDone IN (0, 1)),
         FOREIGN KEY (categoryId) REFERENCES category(id) ON DELETE CASCADE
     )
   `);

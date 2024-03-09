@@ -10,6 +10,59 @@ app.use(cors());
 app.use(express.json());
 const port = process.env.PORT;
 
+app.post("/to-do", (req, res) => {
+  const { description, title, categoryId } = req.body;
+
+  if (
+    typeof description !== "string" ||
+    typeof title !== "string" ||
+    typeof categoryId !== "number"
+  ) {
+    res.status(400).send("Dados inválidos fornecidos");
+    return;
+  }
+
+  const categoryQuery = `SELECT id FROM category WHERE id = ?`;
+
+  db.get(categoryQuery, [categoryId], (err, category) => {
+    if (err) {
+      console.error(err.message);
+      res.status(500).send("Erro ao verificar a categoria");
+      return;
+    }
+
+    if (!category) {
+      res.status(404).send("Categoria não encontrada");
+      return;
+    }
+
+    // Insere o novo todoItem no banco de dados
+    const insertQuery = `INSERT INTO to_do (description, title, categoryId) VALUES (?, ?, ?)`;
+
+    db.run(insertQuery, [description, title, categoryId], function (err) {
+      if (err) {
+        console.error(err.message);
+        res.status(500).send("Erro ao criar o todoItem");
+        return;
+      }
+
+      const newItemId = this.lastID;
+      db.get(
+        `SELECT * FROM to_do WHERE id = ?`,
+        [newItemId],
+        (err, newItem) => {
+          if (err) {
+            console.error(err.message);
+            res.status(500).send("Erro ao buscar o todoItem criado");
+            return;
+          }
+          res.status(201).json(newItem);
+        }
+      );
+    });
+  });
+});
+
 app.delete("/category/:id", (req, res) => {
   const { id } = req.params;
 
