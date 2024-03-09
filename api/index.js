@@ -1,6 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
-var cors = require("cors");
+const cors = require("cors");
+const db = require("./database");
 
 dotenv.config();
 
@@ -9,53 +10,43 @@ const port = process.env.PORT;
 
 app.use(cors());
 
-app.get("/category", (req, res) => {
-  res.json([
-    {
-      id: 5,
-      iconName: "building",
-      isFavorite: true,
-      title: "Criar - teste",
-      todoItems: [
-        {
-          id: 1,
-          description: "Coisas - teste",
-          title: "Tarefas - teste",
-          isImportant: true,
-          isDone: false,
-        },
-        {
-          id: 2,
-          description: "Outras Coisas - teste",
-          title: "Outras Tarefas - teste",
-          isImportant: false,
-          isDone: false,
-        },
-      ],
-    },
-    {
-      id: 8,
-      iconName: "hamburguer",
-      isFavorite: false,
-      title: "Outro - teste",
-      todoItems: [
-        {
-          id: 3,
-          description: "Mais Coisas - teste",
-          title: "Mais Tarefas - teste",
-          isImportant: true,
-          isDone: false,
-        },
-        {
-          id: 4,
-          description: "Mais Outras Coisas - teste",
-          title: "Mais Outras Tarefas - teste",
-          isImportant: true,
-          isDone: false,
-        },
-      ],
-    },
-  ]);
+app.get("/category", async (req, res) => {
+  db.all(`SELECT * FROM category`, [], (err, categories) => {
+    if (err) {
+      console.error(err.message);
+      res.status(500).send("Erro ao buscar categorias");
+      return;
+    }
+
+    let categoriesProcessed = 0;
+
+    if (categories.length === 0) {
+      res.json([]);
+    } else {
+      categories.forEach((category, index, array) => {
+        db.all(
+          `SELECT * FROM to_do WHERE categoryId = ?`,
+          [category.id],
+          (err, items) => {
+            if (err) {
+              console.error(err.message);
+              res
+                .status(500)
+                .send("Erro ao buscar to_do para a categoria: " + category.id);
+              return;
+            }
+
+            array[index].todoItems = items;
+
+            categoriesProcessed++;
+            if (categoriesProcessed === array.length) {
+              res.json(categories);
+            }
+          }
+        );
+      });
+    }
+  });
 });
 
 app.listen(port, () => {
