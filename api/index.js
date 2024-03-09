@@ -6,9 +6,34 @@ const db = require("./database");
 dotenv.config();
 
 const app = express();
+app.use(cors());
+app.use(express.json());
 const port = process.env.PORT;
 
-app.use(cors());
+app.post("/category", (req, res) => {
+  const { iconName, title } = req.body;
+  const isFavorite = false;
+  const todoItems = [];
+
+  if (typeof iconName !== "string" || typeof title !== "string") {
+    res.status(400).send("Dados inválidos fornecidos");
+    return;
+  }
+
+  const query = `INSERT INTO category (iconName, title) VALUES (?, ?)`;
+
+  db.run(query, [iconName, title], function (err) {
+    if (err) {
+      console.error(err.message);
+      res.status(500).send("Erro ao criar a categoria");
+      return;
+    }
+
+    res
+      .status(201)
+      .json({ id: this.lastID, iconName, title, isFavorite, todoItems });
+  });
+});
 
 app.get("/category", async (req, res) => {
   db.all(`SELECT * FROM category`, [], (err, categories) => {

@@ -14,7 +14,7 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS category (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       iconName TEXT NOT NULL,
-      isFavorite BOOLEAN NOT NULL CHECK (isFavorite IN (0, 1)),
+      isFavorite BOOLEAN NOT NULL DEFAULT 0 CHECK (isFavorite IN (0, 1)),
       title TEXT NOT NULL
     )
   `);
