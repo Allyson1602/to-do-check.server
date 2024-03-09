@@ -10,6 +10,77 @@ app.use(cors());
 app.use(express.json());
 const port = process.env.PORT;
 
+app.put("/category/:id", (req, res) => {
+  const { id } = req.params;
+  const { iconName, isFavorite, title } = req.body;
+
+  if (!id) {
+    return res
+      .status(400)
+      .send("É necessário fornecer o ID da categoria para atualização.");
+  }
+
+  const fieldsToUpdate = [];
+  const values = [];
+
+  if (iconName !== undefined) {
+    fieldsToUpdate.push(`iconName = ?`);
+    values.push(iconName);
+  }
+
+  if (isFavorite !== undefined) {
+    fieldsToUpdate.push(`isFavorite = ?`);
+    values.push(isFavorite ? 1 : 0);
+  }
+
+  if (title !== undefined) {
+    fieldsToUpdate.push(`title = ?`);
+    values.push(title);
+  }
+
+  if (fieldsToUpdate.length === 0) {
+    return res.status(400).send("Nenhum dado fornecido para atualização.");
+  }
+
+  const updateQuery = `UPDATE category SET iconName = ?, isFavorite = ?, title = ? WHERE id = ?`;
+
+  db.run(updateQuery, [iconName, isFavorite, title, id], function (err) {
+    if (err) {
+      console.error(err.message);
+      res.status(500).send("Erro ao atualizar a categoria");
+      return;
+    }
+
+    if (this.changes === 0) {
+      res.status(404).send("Categoria não encontrada");
+      return;
+    }
+
+    db.get(`SELECT * FROM category WHERE id = ?`, [id], (err, category) => {
+      if (err) {
+        console.error(err.message);
+        res.status(500).send("Erro ao buscar a categoria atualizada");
+        return;
+      }
+
+      db.all(
+        `SELECT * FROM to_do WHERE categoryId = ?`,
+        [id],
+        (err, todoItems) => {
+          if (err) {
+            console.error(err.message);
+            res.status(500).send("Erro ao buscar todoItems da categoria");
+            return;
+          }
+
+          category.todoItems = todoItems;
+          res.json(category);
+        }
+      );
+    });
+  });
+});
+
 app.post("/category", (req, res) => {
   const { iconName, title } = req.body;
   const isFavorite = false;
