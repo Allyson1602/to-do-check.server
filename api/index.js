@@ -10,6 +10,26 @@ app.use(cors());
 app.use(express.json());
 const port = process.env.PORT;
 
+app.delete("/category/:id", (req, res) => {
+  const { id } = req.params;
+
+  const deleteQuery = `DELETE FROM category WHERE id = ?`;
+
+  db.run(deleteQuery, [id], function (err) {
+    if (err) {
+      console.error(err.message);
+      res.status(500).send("Erro ao deletar a categoria");
+      return;
+    }
+    if (this.changes === 0) {
+      res.status(404).send("Categoria não encontrada");
+      return;
+    }
+
+    res.json({ id: parseInt(id) });
+  });
+});
+
 app.put("/category/:id", (req, res) => {
   const { id } = req.params;
   const { iconName, isFavorite, title } = req.body;
