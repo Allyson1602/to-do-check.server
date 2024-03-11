@@ -14,17 +14,17 @@ app.delete("/to-do/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const result = await sql`
+    const query = await sql`
       DELETE FROM to_do
       WHERE id = ${id}
       RETURNING *;
     `;
 
-    if (result.rowCount === 0) {
+    if (query.rowCount === 0) {
       return res.status(404).send({ message: "To Do não encontrado" });
     }
 
-    res.status(200).json({ id: result.rows[0] });
+    res.status(200).json({ id: query.rows[0] });
   } catch (error) {
     console.error(error);
     res.status(500).send({ message: "Erro ao deletar To Do" });
@@ -33,20 +33,20 @@ app.delete("/to-do/:id", async (req, res) => {
 
 app.put("/to-do/:id", async (req, res) => {
   const { id } = req.params;
-  const { description, title, isImportant, isDone } = req.body;
+  const { description, title, isimportant, isdone } = req.body;
 
   try {
-    const result = await sql`
+    const query = await sql`
       UPDATE to_do
-      SET title = ${title}, description = ${description}, isimportant = ${isImportant}, isdone = ${isDone}
+      SET title = ${title}, description = ${description}, isimportant = ${isimportant}, isdone = ${isdone}
       WHERE id = ${id}
       RETURNING *;
     `;
 
-    if (result.rowCount === 0) {
+    if (query.rowCount === 0) {
       return res.status(404).send({ message: "To Do não encontrado" });
     }
-    res.status(200).json(result.rows[0]);
+    res.status(200).json(query.rows[0]);
   } catch (error) {
     console.error(error);
     res.status(500).send({ message: "Erro ao atualizar To Do" });
@@ -54,12 +54,12 @@ app.put("/to-do/:id", async (req, res) => {
 });
 
 app.post("/to-do", async (req, res) => {
-  const { categoryId, description, title } = req.body;
+  const { categoryid, description, title } = req.body;
 
   if (
     typeof description !== "string" ||
     typeof title !== "string" ||
-    typeof categoryId !== "number"
+    typeof categoryid !== "number"
   ) {
     res.status(400).send("Dados inválidos fornecidos");
     return;
@@ -68,7 +68,7 @@ app.post("/to-do", async (req, res) => {
   try {
     const query = await sql`
         INSERT INTO to_do (categoryid, title, description)
-        VALUES (${categoryId}, ${title}, ${description})
+        VALUES (${categoryid}, ${title}, ${description})
         RETURNING *;
     `;
 
@@ -82,22 +82,22 @@ app.post("/to-do", async (req, res) => {
 app.delete("/category/:id", async (req, res) => {
   const { id } = req.params;
 
-  const result = await sql`
+  const query = await sql`
     DELETE FROM category
     WHERE id = ${id}
     RETURNING *;
   `;
 
-  if (result.rowCount === 0) {
+  if (query.rowCount === 0) {
     return res.status(404).send({ message: "Categoria não encontrada" });
   }
 
-  res.status(200).json({ id: result.rows[0] });
+  res.status(200).json({ id });
 });
 
 app.put("/category/:id", async (req, res) => {
   const { id } = req.params;
-  const { iconName, isFavorite, title } = req.body;
+  const { iconname, isfavorite, title } = req.body;
 
   if (!id) {
     return res
@@ -105,48 +105,42 @@ app.put("/category/:id", async (req, res) => {
       .send("É necessário fornecer o ID da categoria para atualização.");
   }
 
-  if (
-    isFavorite !== undefined ||
-    iconName !== undefined ||
-    title !== undefined
-  ) {
-    return res
-      .status(400)
-      .send("Informe todos os dados necessários para atualização");
-  }
-
-  const query = await sql`
+  const queryCategory = await sql`
     UPDATE category
-    SET title = ${title}, iconname = ${iconName}, isfavorite = ${isFavorite}
+    SET title = ${title}, iconname = ${iconname}, isfavorite = ${isfavorite}
     WHERE id = ${id}
     RETURNING *;
   `;
 
-  if (result.rowCount === 0) {
+  if (queryCategory.rowCount === 0) {
     return res.status(404).send("Categoria não encontrada");
   }
 
-  res.status(200).json(query.rows[0]);
+  const queryToDo = await sql`
+    SELECT * FROM to_do WHERE categoryId = ${id};
+  `;
+
+  res.status(200).json({ ...queryCategory.rows[0], todoitems: queryToDo.rows });
 });
 
 app.post("/category", async (req, res) => {
-  const { iconName, title } = req.body;
-  const isFavorite = false;
-  const todoItems = [];
+  const { iconname, title } = req.body;
+  const isfavorite = false;
+  const todoitems = [];
 
   try {
-    if (typeof iconName !== "string" || typeof title !== "string") {
+    if (typeof iconname !== "string" || typeof title !== "string") {
       res.status(400).send("Dados inválidos fornecidos");
       return;
     }
 
     const query = await sql`
-        INSERT INTO category (iconname, title)
-        VALUES (${title}, ${iconName})
+        INSERT INTO category (title, iconname)
+        VALUES (${title}, ${iconname})
         RETURNING *;
     `;
 
-    res.status(201).json({ ...result.rows[0] }, isFavorite, todoItems);
+    res.status(201).json({ ...query.rows[0], isfavorite, todoitems });
   } catch (error) {
     console.error(error);
     res.status(500).send({ message: "Erro ao criar nova categoria" });
@@ -155,11 +149,14 @@ app.post("/category", async (req, res) => {
 
 app.get("/category", async (req, res) => {
   try {
-    const { rows } = await sql`SELECT * FROM category`;
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: "Categoria não encontrada." });
-    }
+    const { rows } = await sql`
+        SELECT c.id, c.iconname, c.isfavorite, c.title,
+            COALESCE(json_agg(json_build_object('id', t.id, 'categoryid', t.categoryid, 'description', t.description, 'title', t.title, 'isimportant', t.isimportant, 'isdone', t.isdone)) FILTER (WHERE t.id IS NOT NULL), '[]') AS todoitems
+        FROM category c
+        LEFT JOIN to_do t ON c.id = t.categoryid
+        GROUP BY c.id
+        ORDER BY c.id;
+    `;
 
     res.status(200).json(rows);
   } catch (error) {
