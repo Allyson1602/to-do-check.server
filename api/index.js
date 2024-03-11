@@ -1,6 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const { sql } = require("@vercel/postgres");
 const db = require("./database");
 
 dotenv.config();
@@ -265,42 +266,18 @@ app.post("/category", (req, res) => {
 });
 
 app.get("/category", async (req, res) => {
-  db.all(`SELECT * FROM category`, [], (err, categories) => {
-    if (err) {
-      console.error(err.message);
-      res.status(500).send("Erro ao buscar categorias");
-      return;
+  try {
+    const { rows } = await sql`SELECT * FROM category`;
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Categoria não encontrada." });
     }
 
-    let categoriesProcessed = 0;
-
-    if (categories.length === 0) {
-      res.json([]);
-    } else {
-      categories.forEach((category, index, array) => {
-        db.all(
-          `SELECT * FROM to_do WHERE categoryId = ?`,
-          [category.id],
-          (err, items) => {
-            if (err) {
-              console.error(err.message);
-              res
-                .status(500)
-                .send("Erro ao buscar to_do para a categoria: " + category.id);
-              return;
-            }
-
-            array[index].todoItems = items;
-
-            categoriesProcessed++;
-            if (categoriesProcessed === array.length) {
-              res.json(categories);
-            }
-          }
-        );
-      });
-    }
-  });
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erro ao buscar categoria." });
+  }
 });
 
 app.listen(port, () => {
