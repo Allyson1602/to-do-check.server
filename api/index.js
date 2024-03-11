@@ -24,7 +24,7 @@ app.delete("/to-do/:id", async (req, res) => {
       return res.status(404).send({ message: "To Do não encontrado" });
     }
 
-    res.status(200).json({ id: query.rows[0] });
+    res.status(200).json({ id });
   } catch (error) {
     console.error(error);
     res.status(500).send({ message: "Erro ao deletar To Do" });
