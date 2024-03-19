@@ -117,7 +117,7 @@ app.put("/category/:id", async (req, res) => {
   }
 
   const queryToDo = await sql`
-    SELECT * FROM to_do WHERE categoryId = ${id};
+    SELECT * FROM to_do WHERE categoryId = ${id} ORDER BY id ASC;
   `;
 
   res.status(200).json({ ...queryCategory.rows[0], todoitems: queryToDo.rows });
