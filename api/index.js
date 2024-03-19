@@ -33,12 +33,12 @@ app.delete("/to-do/:id", async (req, res) => {
 
 app.put("/to-do/:id", async (req, res) => {
   const { id } = req.params;
-  const { description, title, isimportant, isdone } = req.body;
+  const { description, title, isimportant, isdone, orderNumber } = req.body;
 
   try {
     const query = await sql`
       UPDATE to_do
-      SET title = ${title}, description = ${description}, isimportant = ${isimportant}, isdone = ${isdone}
+      SET title = ${title}, description = ${description}, isimportant = ${isimportant}, isdone = ${isdone}, orderNumber = ${orderNumber}
       WHERE id = ${id}
       RETURNING *;
     `;
@@ -54,7 +54,7 @@ app.put("/to-do/:id", async (req, res) => {
 });
 
 app.post("/to-do", async (req, res) => {
-  const { categoryid, description = "", title } = req.body;
+  const { categoryid, description = "", title, ordernumber } = req.body;
 
   if (typeof title !== "string" || typeof categoryid !== "number") {
     res.status(400).send("Dados inválidos fornecidos");
@@ -63,8 +63,8 @@ app.post("/to-do", async (req, res) => {
 
   try {
     const query = await sql`
-        INSERT INTO to_do (categoryid, title, description)
-        VALUES (${categoryid}, ${title}, ${description})
+        INSERT INTO to_do (categoryid, title, description, ordernumber)
+        VALUES (${categoryid}, ${title}, ${description}, ${ordernumber})
         RETURNING *;
     `;
 
