@@ -54,7 +54,7 @@ app.put("/to-do/:id", async (req, res) => {
 });
 
 app.post("/to-do", async (req, res) => {
-  const { categoryid, description, title } = req.body;
+  const { categoryid, description = "", title } = req.body;
 
   if (typeof title !== "string" || typeof categoryid !== "number") {
     res.status(400).send("Dados inválidos fornecidos");
