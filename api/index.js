@@ -150,12 +150,24 @@ app.post("/category", async (req, res) => {
 app.get("/category", async (req, res) => {
   try {
     const { rows } = await sql`
-        SELECT c.id, c.iconname, c.isfavorite, c.title,
-            COALESCE(json_agg(json_build_object('id', t.id, 'categoryid', t.categoryid, 'description', t.description, 'title', t.title, 'isimportant', t.isimportant, 'isdone', t.isdone)) FILTER (WHERE t.id IS NOT NULL), '[]') AS todoitems
-        FROM category c
-        LEFT JOIN to_do t ON c.id = t.categoryid
-        GROUP BY c.id
-        ORDER BY c.id;
+    SELECT c.id, c.iconname, c.isfavorite, c.title,
+      COALESCE(
+        json_agg(
+          json_build_object(
+            'id', t.id, 
+            'categoryid', t.categoryid, 
+            'description', t.description, 
+            'title', t.title, 
+            'isimportant', t.isimportant, 
+            'isdone', t.isdone
+          ) ORDER BY t.id
+        ) FILTER (WHERE t.id IS NOT NULL), 
+        '[]'
+      ) AS todoitems
+    FROM category c
+    LEFT JOIN to_do t ON c.id = t.categoryid
+    GROUP BY c.id
+    ORDER BY c.id;
     `;
 
     res.status(200).json(rows);
