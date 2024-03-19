@@ -156,6 +156,7 @@ app.get("/category", async (req, res) => {
             'title', t.title, 
             'isimportant', t.isimportant, 
             'isdone', t.isdone
+            'ordernumber', t.ordernumber
           ) ORDER BY t.ordernumber
         ) FILTER (WHERE t.id IS NOT NULL), 
         '[]'
