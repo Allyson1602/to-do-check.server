@@ -113,7 +113,7 @@ app.put("/category/:id", async (req, res) => {
   }
 
   const queryToDo = await sql`
-    SELECT * FROM to_do WHERE categoryId = ${id} ORDER BY id ASC;
+    SELECT * FROM to_do WHERE categoryId = ${id} ORDER BY ordernumber ASC;
   `;
 
   res.status(200).json({ ...queryCategory.rows[0], todoitems: queryToDo.rows });
@@ -156,7 +156,7 @@ app.get("/category", async (req, res) => {
             'title', t.title, 
             'isimportant', t.isimportant, 
             'isdone', t.isdone
-          ) ORDER BY t.id
+          ) ORDER BY t.ordernumber
         ) FILTER (WHERE t.id IS NOT NULL), 
         '[]'
       ) AS todoitems
