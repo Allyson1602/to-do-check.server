@@ -33,12 +33,12 @@ app.delete("/to-do/:id", async (req, res) => {
 
 app.put("/to-do/:id", async (req, res) => {
   const { id } = req.params;
-  const { description, title, isimportant, isdone, orderNumber } = req.body;
+  const { description, title, isimportant, isdone, ordernumber } = req.body;
 
   try {
     const query = await sql`
       UPDATE to_do
-      SET title = ${title}, description = ${description}, isimportant = ${isimportant}, isdone = ${isdone}, orderNumber = ${orderNumber}
+      SET title = ${title}, description = ${description}, isimportant = ${isimportant}, isdone = ${isdone}, ordernumber = ${ordernumber}
       WHERE id = ${id}
       RETURNING *;
     `;
